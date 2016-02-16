@@ -1,0 +1,7 @@
+BSDIFF_1_0_0 {
+  global:
+    make_bsdiff_delta;
+    apply_bsdiff_delta;
+  local:
+    *;
+};

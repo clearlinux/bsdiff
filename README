@@ -1,0 +1,11 @@
+This project is a forked version of BSDiff, as taken from the Chromium project
+at SVN Revision 122769. See README.chromium for background on its origins.
+
+Significant changes after the fork include:
+
+- Changing the BSDiff file format to support file owner, group, and permission
+  information.
+- Adding more robust error handling.
+- Adding a new program, bsdump, that outputs BSDiff header information.
+- Converting the core functionality into a library, libbsdiff, with public API
+  functions make_bsdiff_delta() and apply_bsdiff_delta().

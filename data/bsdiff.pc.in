@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: bsdiff
+Description: Library for bsdiff
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -lbsdiff
+Cflags: -I${includedir}

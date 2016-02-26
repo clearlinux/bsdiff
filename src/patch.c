@@ -690,7 +690,7 @@ static int apply_delta_v2(int subver, FILE *f,
 	cfclose(&ef);
 
 	/* Write the new file */
-	fd = open(new_filename, O_CREAT | O_EXCL | O_WRONLY, 0600);
+	fd = open(new_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
 	if (fd < 0) {
 		ret = -1;
 		goto writeerror;

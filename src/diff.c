@@ -586,7 +586,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
-		efd = open(delta_filename, O_CREAT | O_EXCL | O_RDWR, 00600);
+		efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
 		if (efd < 0) {
 			close(fd);
 			return -1;
@@ -668,7 +668,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
-		efd = open(delta_filename, O_CREAT | O_EXCL | O_RDWR, 00600);
+		efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
 		if (efd < 0) {
 			close(fd);
 			munmap(old_data, oldsize);
@@ -883,7 +883,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 
 	/* Create the patch file */
 
-	efd = open(delta_filename, O_CREAT | O_EXCL | O_RDWR, 00600);
+	efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
 	if (efd < 0) {
 		ret = -1;
 		goto fulldl_free;

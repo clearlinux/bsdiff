@@ -13,6 +13,7 @@ bsdump
 bspatch
 compile
 configure
+coverage/
 depcomp
 install-sh
 libbsdiff.la
@@ -21,6 +22,8 @@ ltmain.sh
 m4/
 missing
 src/.dirstamp
+src/*.gcda
+src/*.gcno
 stamp-h1
 bsdiff-*.tar.xz
 test/*.diff

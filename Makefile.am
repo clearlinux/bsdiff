@@ -28,11 +28,15 @@ EXTRA_DIST = \
 AUTOMAKE_OPTIONS = color-tests parallel-tests
 
 if COVERAGE
-coverage:
+AM_CFLAGS += --coverage
+
+coverage: coverage-clean
 	mkdir -p coverage
 	lcov --compat-libtool --directory . --capture --output-file coverage/report
 	genhtml -o coverage/ coverage/report
-AM_CFLAGS += --coverage
+
+coverage-clean:
+	rm -rf coverage
 endif
 
 bin_PROGRAMS = \
@@ -98,7 +102,10 @@ distclean-local:
 install-exec-hook:
 	perl findstatic.pl */*.o | grep -v Checking ||:
 
-check_PROGRAMS =
+TEST_EXTENSIONS = .sh
+TESTS = $(dist_check_SCRIPTS)
+dist_check_SCRIPTS = \
+	test/run.sh
 
 release:
 	@git rev-parse v$(PACKAGE_VERSION) &> /dev/null; \

@@ -28,3 +28,7 @@ stamp-h1
 bsdiff-*.tar.xz
 test/*.diff
 test/*.out
+test/*.log
+test/*.trs
+tap-driver.sh
+test-suite.log

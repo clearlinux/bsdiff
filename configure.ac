@@ -66,6 +66,7 @@ AS_IF([test "$enable_tests" != "no"], [
 AM_CONDITIONAL([ENABLE_TESTS], [test "$enable_tests" != "no"])
 
 AC_CONFIG_FILES([Makefile data/bsdiff.pc])
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_OUTPUT
 
 AC_MSG_RESULT([

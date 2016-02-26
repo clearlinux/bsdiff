@@ -104,6 +104,11 @@ install-exec-hook:
 
 TEST_EXTENSIONS = .sh
 if ENABLE_TESTS
+tap_driver = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+	$(top_srcdir)/tap-driver.sh
+
+LOG_DRIVER = $(tap_driver)
+SH_LOG_DRIVER = $(tap_driver)
 TESTS = $(dist_check_SCRIPTS)
 dist_check_SCRIPTS = \
 	test/run.sh

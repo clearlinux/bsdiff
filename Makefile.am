@@ -103,9 +103,11 @@ install-exec-hook:
 	perl findstatic.pl */*.o | grep -v Checking ||:
 
 TEST_EXTENSIONS = .sh
+if ENABLE_TESTS
 TESTS = $(dist_check_SCRIPTS)
 dist_check_SCRIPTS = \
 	test/run.sh
+endif
 
 release:
 	@git rev-parse v$(PACKAGE_VERSION) &> /dev/null; \

@@ -33,6 +33,11 @@ AS_IF([test "$enable_lzma" != "no"], [
 ])
 AM_CONDITIONAL([ENABLE_LZMA], [test "$enable_lzma" != "no"])
 
+AC_ARG_ENABLE(
+  [tests],
+  [AS_HELP_STRING([--disable-tests], [Do not enable functional tests (enabled by default)])]
+)
+
 have_coverage=no
 AC_ARG_ENABLE(coverage, AS_HELP_STRING([--enable-coverage], [enable test coverage]))
 if test "x$enable_coverage" = "xyes" ; then
@@ -52,6 +57,13 @@ if test "x$enable_coverage" = "xyes" ; then
 fi
 AM_CONDITIONAL([COVERAGE], [test "$have_coverage" = "yes"])
 
+AS_IF([test "$enable_tests" != "no"], [
+  AC_PATH_PROG([have_valgrind], [valgrind])
+  AS_IF([test -z "${have_valgrind}"], [
+    AC_MSG_ERROR([Must have valgrind installed to run functional tests])
+  ])
+])
+AM_CONDITIONAL([ENABLE_TESTS], [test "$enable_tests" != "no"])
 
 AC_CONFIG_FILES([Makefile data/bsdiff.pc])
 AC_OUTPUT

@@ -14,7 +14,6 @@ AM_SILENT_RULES([yes])
 LT_INIT
 
 PKG_CHECK_MODULES([zlib], [zlib])
-PKG_CHECK_MODULES([CHECK], [check >= 0.9])
 
 AC_ARG_ENABLE([bzip2],
 	      [AS_HELP_STRING([--disable-bzip2],[Do not use bzip2 compression (uses bzip2 by default)])])
@@ -58,6 +57,7 @@ fi
 AM_CONDITIONAL([COVERAGE], [test "$have_coverage" = "yes"])
 
 AS_IF([test "$enable_tests" != "no"], [
+  PKG_CHECK_MODULES([CHECK], [check >= 0.9])
   AC_PATH_PROG([have_valgrind], [valgrind])
   AS_IF([test -z "${have_valgrind}"], [
     AC_MSG_ERROR([Must have valgrind installed to run functional tests])

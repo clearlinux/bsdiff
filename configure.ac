@@ -57,7 +57,7 @@ fi
 AM_CONDITIONAL([COVERAGE], [test "$have_coverage" = "yes"])
 
 AS_IF([test "$enable_tests" != "no"], [
-  PKG_CHECK_MODULES([CHECK], [check >= 0.9])
+  PKG_CHECK_MODULES([CHECK], [check >= 0.9.12])
   AC_PATH_PROG([have_valgrind], [valgrind])
   AS_IF([test -z "${have_valgrind}"], [
     AC_MSG_ERROR([Must have valgrind installed to run functional tests])

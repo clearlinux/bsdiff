@@ -8,7 +8,7 @@ testnum=0
 
 sudo rm -f *.diff *.out
 
-libdir="$(realpath "../.libs")"
+libdir="$(readlink -f "../.libs")"
 ldpath="LD_LIBRARY_PATH=$libdir"
 BSDIFF="sudo $ldpath valgrind -q $libdir/bsdiff"
 BSPATCH="sudo $ldpath valgrind -q $libdir/bspatch"

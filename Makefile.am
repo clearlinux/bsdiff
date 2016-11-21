@@ -103,7 +103,39 @@ install-exec-hook:
 	perl findstatic.pl */*.o | grep -v Checking ||:
 
 TEST_EXTENSIONS = .sh
+
+EXTRA_DIST += \
+	test/data/5.bspatch.diff \
+	test/data/5.bspatch.original \
+	test/data/6.bspatch.diff \
+	test/data/6.bspatch.original \
+	test/data/7.bspatch.diff \
+	test/data/7.bspatch.original \
+	test/data/8.bspatch.diff \
+	test/data/8.bspatch.original \
+	test/data/9.bspatch.diff \
+	test/data/9.bspatch.modified \
+	test/data/9.bspatch.original \
+	test/data/10.bspatch.diff \
+	test/data/10.bspatch.modified \
+	test/data/10.bspatch.original \
+	test/data/11.bspatch.diff \
+	test/data/12.bspatch.diff \
+	test/data/12.bspatch.modified \
+	test/data/12.bspatch.original \
+	test/data/13.bspatch.modified \
+	test/data/13.bspatch.original \
+	test/data/14.bspatch.modified \
+	test/data/14.bspatch.original \
+	test/data/15.bspatch.modified \
+	test/data/15.bspatch.original \
+	test/data/16.bspatch.diff \
+	test/data/16.bspatch.original
+
 if ENABLE_TESTS
+AM_TESTS_ENVIRONMENT = \
+	abs_builddir=$(abs_builddir); export abs_builddir;
+
 tap_driver = env AM_TAP_AWK='$(AWK)' $(SHELL) \
 	$(top_srcdir)/tap-driver.sh
 

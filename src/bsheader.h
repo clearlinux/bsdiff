@@ -58,7 +58,7 @@ struct header_v20 {
 	uint64_t extra_length;
 	uint64_t old_file_length;
 	uint64_t new_file_length;
-	uint64_t mtime;  /* unused */
+	uint64_t mtime; /* unused */
 	uint32_t file_mode;
 	uint32_t file_owner;
 	uint32_t file_group;

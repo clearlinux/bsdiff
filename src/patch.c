@@ -44,23 +44,23 @@ __FBSDID
 #include <lzma.h>
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <zlib.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <linux/fs.h>
 #include <assert.h>
 #include <endian.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <limits.h>
+#include <linux/fs.h>
+#include <pwd.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <zlib.h>
 
 #include "bsheader.h"
 
@@ -259,7 +259,7 @@ typedef struct {
 #ifdef BSDIFF_WITH_BZIP2
 		BZFILE *bz2; /* method = BZIP2 */
 #endif
-		gzFile gz;  /* method = GZIP */
+		gzFile gz; /* method = GZIP */
 #ifdef BSDIFF_WITH_LZMA
 		xzfile *xz; /* method = XZ */
 #endif

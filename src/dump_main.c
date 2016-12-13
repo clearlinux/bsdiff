@@ -30,12 +30,12 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "bsdiff.h"
 #include "bsheader.h"
@@ -110,7 +110,7 @@ static void print_v20_header(struct header_v20 *h, FILE *f)
 	if (h->mtime == 0) {
 		printf("Mtime:\t(not set, as expected)\n");
 	} else {
-		printf("Mtime:\t%s (probably means there is a bug)\n", ctime((const time_t*)&h->mtime));
+		printf("Mtime:\t%s (probably means there is a bug)\n", ctime((const time_t *)&h->mtime));
 	}
 	printf("Mode:\t%4o\n", h->file_mode);
 	printf("Uid:\t%d\n", h->file_owner);

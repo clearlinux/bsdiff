@@ -45,20 +45,20 @@ __FBSDID
 #include <lzma.h>
 #endif
 
+#include <assert.h>
+#include <endian.h>
+#include <grp.h>
+#include <pthread.h>
+#include <pwd.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <zlib.h>
-#include <endian.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
-#include <pthread.h>
-#include <assert.h>
-#include <sys/mman.h>
 
 #include "bsheader.h"
 

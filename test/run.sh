@@ -8,10 +8,15 @@ testnum=0
 
 sudo rm -f *.diff *.out
 
+VALGRIND="valgrind -q"
+if [ -n "$SKIP_VALGRIND" ]; then
+	VALGRIND=""
+fi
+
 libdir="$abs_builddir/.libs"
 ldpath="LD_LIBRARY_PATH=$libdir"
-BSDIFF="sudo $ldpath valgrind -q $libdir/bsdiff"
-BSPATCH="sudo $ldpath valgrind -q $libdir/bspatch"
+BSDIFF="sudo $ldpath $VALGRIND $libdir/bsdiff"
+BSPATCH="sudo $ldpath $VALGRIND $libdir/bspatch"
 
 # If exit status is 0, the test succeeded. Else it failed.
 check_success() {

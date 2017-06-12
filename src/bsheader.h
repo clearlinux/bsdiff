@@ -2,6 +2,7 @@
 #define __INCLUDE_GUARD_BSHEADER_H
 
 #include <stdint.h>
+#include <sys/types.h> // for u_char
 
 #include "bsdiff.h"
 
@@ -176,5 +177,7 @@ static inline int eblock_get_enc(enc_flags_t enc)
 		return BSDIFF_ENC_ANY;
 	}
 }
+
+int qsufsort(int64_t *, int64_t *, u_char *, int64_t);
 
 #endif

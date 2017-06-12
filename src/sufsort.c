@@ -191,4 +191,3 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 
 	return 0;
 }
-

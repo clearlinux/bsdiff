@@ -67,7 +67,8 @@ lib_LTLIBRARIES = \
 
 libbsdiff_la_SOURCES = \
 	src/diff.c \
-	src/patch.c
+	src/patch.c \
+	src/sufsort.c
 
 libbsdiff_la_LIBADD = \
 	$(zlib_LIBS)

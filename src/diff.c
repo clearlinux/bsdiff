@@ -88,27 +88,58 @@ static int64_t matchlen(u_char *old, int64_t oldsize, u_char *new,
 	return i;
 }
 
+int64_t max_len = 0;
+
+/**
+ * Finds the longest matching array of bytes between the OLD and NEW file. The
+ * old file is suffix-sorted; the suffix-sorted array is stored at I, and
+ * indices to search between are indicated by ST (start) and EN (end). Returns
+ * the length of the match, and POS is updated to the position of the match
+ * within OLD.
+ */
 static int64_t search(int64_t *I, u_char *old, int64_t oldsize,
 		      u_char *new, int64_t newsize, int64_t st, int64_t en,
 		      int64_t *pos)
 {
 	int64_t x, y;
 
+	/* Initialize max_len for the binary search */
+	if (st == 0 && en == oldsize) {
+		max_len = matchlen(old, oldsize, new, newsize);
+		*pos = I[st];
+	}
+
+	/* The binary search terminates here when "en" and "st" are adjacent
+	 * indices in the suffix-sorted array. */
 	if (en - st < 2) {
 		x = matchlen(old + I[st], oldsize - I[st], new, newsize);
-		y = matchlen(old + I[en], oldsize - I[en], new, newsize);
-
-		if (x > y) {
+		if (x > max_len) {
+			max_len = x;
 			*pos = I[st];
-			return x;
-		} else {
-			*pos = I[en];
-			return y;
 		}
+		y = matchlen(old + I[en], oldsize - I[en], new, newsize);
+		if (y > max_len) {
+			max_len = y;
+			*pos = I[en];
+		}
+
+		return max_len;
 	}
 
 	x = st + (en - st) / 2;
-	if (memcmp(old + I[x], new, MIN(oldsize - I[x], newsize)) < 0) {
+
+	int64_t length = MIN(oldsize - I[x], newsize);
+	u_char *oldoffset = old + I[x];
+
+	/* This match *could* be the longest one, so check for that here */
+	int64_t tmp = matchlen(oldoffset, length, new, length);
+	if (tmp > max_len) {
+		max_len = tmp;
+		*pos = I[x];
+	}
+
+	/* Determine how to continue the binary search */
+	if (memcmp(oldoffset, new, length) < 0) {
 		return search(I, old, oldsize, new, newsize, x, en, pos);
 	} else {
 		return search(I, old, oldsize, new, newsize, st, x, pos);

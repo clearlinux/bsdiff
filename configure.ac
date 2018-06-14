@@ -1,5 +1,5 @@
 AC_PREREQ([2.66])
-AC_INIT([bsdiff], [1.0.3], [patrick.mccarty@intel.com])
+AC_INIT([bsdiff], [1.0.4], [patrick.mccarty@intel.com])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
 AC_PROG_CC_STDC

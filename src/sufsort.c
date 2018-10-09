@@ -126,8 +126,8 @@ static void split(int64_t *I, int64_t *V, int64_t arraylen, int64_t start, int64
 }
 
 /* The old_data (previous file data) is passed into this suffix sort and sorted
- * accordingly using the I and V arrays, which are both of length oldsize +1. */
-int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
+ * accordingly using the I and V arrays, which are both of length old_size +1. */
+int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t old_size)
 {
 	int64_t buckets[QSUF_BUCKET_SIZE];
 	int64_t i, h, len;
@@ -135,7 +135,7 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 	for (i = 0; i < QSUF_BUCKET_SIZE; i++) {
 		buckets[i] = 0;
 	}
-	for (i = 0; i < oldsize; i++) {
+	for (i = 0; i < old_size; i++) {
 		buckets[old[i]]++;
 	}
 	for (i = 1; i < QSUF_BUCKET_SIZE; i++) {
@@ -146,17 +146,17 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 	}
 	buckets[0] = 0;
 
-	for (i = 0; i < oldsize; i++) {
-		if (buckets[old[i]] > oldsize + 1) {
+	for (i = 0; i < old_size; i++) {
+		if (buckets[old[i]] > old_size + 1) {
 			return -1;
 		}
 		I[++buckets[old[i]]] = i;
 	}
 
-	for (i = 0; i < oldsize; i++) {
+	for (i = 0; i < old_size; i++) {
 		V[i] = buckets[old[i]];
 	}
-	V[oldsize] = 0;
+	V[old_size] = 0;
 	for (i = 1; i < QSUF_BUCKET_SIZE; i++) {
 		if (buckets[i] == buckets[i - 1] + 1) {
 			I[buckets[i]] = -1;
@@ -164,9 +164,9 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 	}
 	I[0] = -1;
 
-	for (h = 1; I[0] != -(oldsize + 1); h += h) {
+	for (h = 1; I[0] != -(old_size + 1); h += h) {
 		len = 0;
-		for (i = 0; i < oldsize + 1;) {
+		for (i = 0; i < old_size + 1;) {
 			if (I[i] < 0) {
 				len -= I[i];
 				i -= I[i];
@@ -175,7 +175,7 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 					I[i - len] = -len;
 				}
 				len = V[I[i]] + 1 - i;
-				split(I, V, oldsize, i, len, h);
+				split(I, V, old_size, i, len, h);
 				i += len;
 				len = 0;
 			}
@@ -185,7 +185,7 @@ int qsufsort(int64_t *I, int64_t *V, u_char *old, int64_t oldsize)
 		}
 	}
 
-	for (i = 0; i < oldsize + 1; i++) {
+	for (i = 0; i < old_size + 1; i++) {
 		I[V[i]] = i;
 	}
 

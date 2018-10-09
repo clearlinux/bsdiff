@@ -544,7 +544,7 @@ static int apply_delta_v2(int subver, FILE *f,
 	int i, ret, fd;
 	off_t data_offset;
 	off_t ctrllen, difflen, extralen;
-	off_t oldsize, newsize;
+	off_t old_size, new_size;
 	mode_t mode;
 	uid_t uid;
 	gid_t gid;
@@ -561,8 +561,8 @@ static int apply_delta_v2(int subver, FILE *f,
 		ctrllen = header.control_length;
 		difflen = header.diff_length;
 		extralen = header.extra_length;
-		oldsize = header.old_file_length;
-		newsize = header.new_file_length;
+		old_size = header.old_file_length;
+		new_size = header.new_file_length;
 		mode = header.file_mode;
 		uid = header.file_owner;
 		gid = header.file_group;
@@ -576,8 +576,8 @@ static int apply_delta_v2(int subver, FILE *f,
 		ctrllen = header.control_length;
 		difflen = header.diff_length;
 		extralen = header.extra_length;
-		oldsize = header.old_file_length;
-		newsize = header.new_file_length;
+		old_size = header.old_file_length;
+		new_size = header.new_file_length;
 		mode = header.file_mode;
 		uid = header.file_owner;
 		gid = header.file_group;
@@ -588,7 +588,7 @@ static int apply_delta_v2(int subver, FILE *f,
 
 	if ((ret = check_header(f, encoding,
 				ctrllen, difflen, extralen,
-				oldsize, newsize, data_offset)) < 0) {
+				old_size, new_size, data_offset)) < 0) {
 		return ret;
 	}
 
@@ -597,29 +597,29 @@ static int apply_delta_v2(int subver, FILE *f,
 		return ret;
 	}
 
-	ret = read_file(old_filename, &old_data, oldsize);
+	ret = read_file(old_filename, &old_data, old_size);
 	if (ret < 0) {
 		goto preperror;
 	}
 
-	if (newsize > BSDIFF_MAX_FILESZ) {
-		munmap(old_data, oldsize);
+	if (new_size > BSDIFF_MAX_FILESZ) {
+		munmap(old_data, old_size);
 		ret = -1;
 		goto preperror;
 	}
 
-	/* Allocate newsize+1 bytes instead of newsize bytes to ensure
+	/* Allocate new_size+1 bytes instead of new_size bytes to ensure
 	   that we never try to malloc(0) and get a NULL pointer */
-	if ((new_data = malloc(newsize + 1)) == NULL) {
-		munmap(old_data, oldsize);
+	if ((new_data = malloc(new_size + 1)) == NULL) {
+		munmap(old_data, old_size);
 		ret = -1;
 		goto preperror;
 	}
-	memset(new_data, 0, newsize + 1);
+	memset(new_data, 0, new_size + 1);
 
 	oldpos = 0;
 	newpos = 0;
-	while (newpos < newsize) {
+	while (newpos < new_size) {
 		/* Read control data:
 		 *   ctrl[0] == offset into diff block
 		 *   ctrl[1] == offset into extra block
@@ -641,7 +641,7 @@ static int apply_delta_v2(int subver, FILE *f,
 		}
 
 		/* Sanity-check */
-		if (newpos + ctrl[0] > newsize || ctrl[0] < 0 || newpos + ctrl[0] < 0) {
+		if (newpos + ctrl[0] > new_size || ctrl[0] < 0 || newpos + ctrl[0] < 0) {
 			ret = -1;
 			goto readerror;
 		}
@@ -654,7 +654,7 @@ static int apply_delta_v2(int subver, FILE *f,
 
 		/* Add old data to diff string */
 		for (i = 0; i < ctrl[0]; i++) {
-			if ((oldpos + i >= 0) && (oldpos + i < oldsize)) {
+			if ((oldpos + i >= 0) && (oldpos + i < old_size)) {
 				new_data[newpos + i] += old_data[oldpos + i];
 			}
 		}
@@ -664,11 +664,11 @@ static int apply_delta_v2(int subver, FILE *f,
 		oldpos += ctrl[0];
 
 		/* Sanity-check */
-		if (newpos + ctrl[1] > newsize || ctrl[1] < 0 || newpos + ctrl[1] < 0) {
+		if (newpos + ctrl[1] > new_size || ctrl[1] < 0 || newpos + ctrl[1] < 0) {
 			ret = -1;
 			goto readerror;
 		}
-		if (oldpos + ctrl[2] > oldsize || oldpos + ctrl[2] < 0) {
+		if (oldpos + ctrl[2] > old_size || oldpos + ctrl[2] < 0) {
 			ret = -1;
 			goto readerror;
 		}
@@ -696,7 +696,7 @@ static int apply_delta_v2(int subver, FILE *f,
 		goto writeerror;
 	}
 
-	if (write(fd, new_data, newsize) != newsize) {
+	if (write(fd, new_data, new_size) != new_size) {
 		unlink(new_filename);
 		close(fd);
 		ret = -1;
@@ -719,12 +719,12 @@ static int apply_delta_v2(int subver, FILE *f,
 
 writeerror:
 	free(new_data);
-	munmap(old_data, oldsize);
+	munmap(old_data, old_size);
 	return ret;
 
 readerror:
 	free(new_data);
-	munmap(old_data, oldsize);
+	munmap(old_data, old_size);
 preperror:
 	cfclose(&cf);
 	cfclose(&df);

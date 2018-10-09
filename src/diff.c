@@ -74,12 +74,12 @@ static int bsdiff_fulldl;
 #undef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-static int64_t matchlen(u_char *old, int64_t oldsize, u_char *new,
-			int64_t newsize)
+static int64_t matchlen(u_char *old, int64_t old_size, u_char *new,
+			int64_t new_size)
 {
 	int64_t i;
 
-	for (i = 0; (i < oldsize) && (i < newsize); i++) {
+	for (i = 0; (i < old_size) && (i < new_size); i++) {
 		if (old[i] != new[i]) {
 			break;
 		}
@@ -96,27 +96,27 @@ static int64_t matchlen(u_char *old, int64_t oldsize, u_char *new,
  * updated to the position of the match within OLD, and MAX_LEN is set to the
  * match length.
  */
-static void search(int64_t *I, u_char *old, int64_t oldsize,
-		   u_char *new, int64_t newsize, int64_t st, int64_t en,
+static void search(int64_t *I, u_char *old, int64_t old_size,
+		   u_char *new, int64_t new_size, int64_t st, int64_t en,
 		   int64_t *pos, int64_t *max_len)
 {
 	int64_t x, y;
 
 	/* Initialize max_len for the binary search */
-	if (st == 0 && en == oldsize) {
-		*max_len = matchlen(old, oldsize, new, newsize);
+	if (st == 0 && en == old_size) {
+		*max_len = matchlen(old, old_size, new, new_size);
 		*pos = I[st];
 	}
 
 	/* The binary search terminates here when "en" and "st" are adjacent
 	 * indices in the suffix-sorted array. */
 	if (en - st < 2) {
-		x = matchlen(old + I[st], oldsize - I[st], new, newsize);
+		x = matchlen(old + I[st], old_size - I[st], new, new_size);
 		if (x > *max_len) {
 			*max_len = x;
 			*pos = I[st];
 		}
-		y = matchlen(old + I[en], oldsize - I[en], new, newsize);
+		y = matchlen(old + I[en], old_size - I[en], new, new_size);
 		if (y > *max_len) {
 			*max_len = y;
 			*pos = I[en];
@@ -127,7 +127,7 @@ static void search(int64_t *I, u_char *old, int64_t oldsize,
 
 	x = st + (en - st) / 2;
 
-	int64_t length = MIN(oldsize - I[x], newsize);
+	int64_t length = MIN(old_size - I[x], new_size);
 	u_char *oldoffset = old + I[x];
 
 	/* This match *could* be the longest one, so check for that here */
@@ -139,9 +139,9 @@ static void search(int64_t *I, u_char *old, int64_t oldsize,
 
 	/* Determine how to continue the binary search */
 	if (memcmp(oldoffset, new, length) < 0) {
-		return search(I, old, oldsize, new, newsize, x, en, pos, max_len);
+		return search(I, old, old_size, new, new_size, x, en, pos, max_len);
 	} else {
-		return search(I, old, oldsize, new, newsize, st, x, pos, max_len);
+		return search(I, old, old_size, new, new_size, st, x, pos, max_len);
 	}
 }
 
@@ -386,7 +386,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 {
 	int fd, efd;
 	u_char *old_data, *new_data;
-	int64_t oldsize, newsize;
+	int64_t old_size, new_size;
 	int64_t *I, *V;
 	int64_t scan;
 	int64_t pos = 0;
@@ -439,12 +439,12 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		return -1;
 	}
 
-	oldsize = old_stat.st_size;
+	old_size = old_stat.st_size;
 
 	/* We may start with an empty file, if so, just mark it for full download
 	 * to throw into the pack. In the case that newfile is <200, it will quit
-	 * and ask for fulldownload, so we only need to check oldsize */
-	if (oldsize == 0) {
+	 * and ask for fulldownload, so we only need to check old_size */
+	if (old_size == 0) {
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
@@ -471,9 +471,9 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	/* TODO: investigate why this needs to be +1 to not overrun; coverity complains
 	 * that we overrun old_data when we calculate differences otherwise. Tenatively,
 	 * since this is used in qsufsort, it may need to be +1 like I and V because of
-	 * a sentinel byte when sorting. However, newsize does not cause any overruns
+	 * a sentinel byte when sorting. However, new_size does not cause any overruns
 	 * when created with the regular file size */
-	old_data = mmap(NULL, oldsize + 1, PROT_READ, MAP_SHARED, fd, 0);
+	old_data = mmap(NULL, old_size + 1, PROT_READ, MAP_SHARED, fd, 0);
 	close(fd);
 
 	if (old_data == MAP_FAILED) {
@@ -483,19 +483,19 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 
 	/* These arrays are size + 1 because suffix sort needs space for the
 	 * data + 1 sentinel element to actually do the sorting. Not because
-	 * oldsize might be 0. */
-	if ((I = malloc((oldsize + 1) * sizeof(int64_t))) == NULL) {
-		munmap(old_data, oldsize);
+	 * old_size might be 0. */
+	if ((I = malloc((old_size + 1) * sizeof(int64_t))) == NULL) {
+		munmap(old_data, old_size);
 		return -1;
 	}
-	if ((V = malloc((oldsize + 1) * sizeof(int64_t))) == NULL) {
-		munmap(old_data, oldsize);
+	if ((V = malloc((old_size + 1) * sizeof(int64_t))) == NULL) {
+		munmap(old_data, old_size);
 		free(I);
 		return -1;
 	}
 
-	if (qsufsort(I, V, old_data, oldsize) != 0) {
-		munmap(old_data, oldsize);
+	if (qsufsort(I, V, old_data, old_size) != 0) {
+		munmap(old_data, old_size);
 		free(I);
 		free(V);
 		return -1;
@@ -504,19 +504,19 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	free(V);
 
 	if ((fd = open(new_filename, O_RDONLY, 0)) < 0) {
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(I);
 		return -1;
 	}
 
 	if (fstat(fd, &new_stat) != 0) {
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(I);
 		close(fd);
 		return -1;
 	}
 
-	newsize = new_stat.st_size;
+	new_size = new_stat.st_size;
 
 	/* Note: testing this to see how diffs between small files affect
 	 * updates. Small files seem to cause some problems between certain
@@ -526,76 +526,76 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	 * the "is bsdiff < 90% of newfile size" check that would otherwise
 	 * be performed later on.
 	 */
-	if (newsize < 200) {
+	if (new_size < 200) {
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
 		efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
 		if (efd < 0) {
 			close(fd);
-			munmap(old_data, oldsize);
+			munmap(old_data, old_size);
 			free(I);
 			return -1;
 		}
 		if ((pf = fdopen(efd, "w")) == NULL) {
 			close(efd);
 			close(fd);
-			munmap(old_data, oldsize);
+			munmap(old_data, old_size);
 			free(I);
 			return -1;
 		}
 		if (fwrite(&small_header, 8, 1, pf) != 1) {
 			fclose(pf);
 			close(fd);
-			munmap(old_data, oldsize);
+			munmap(old_data, old_size);
 
 			free(I);
 			return -1;
 		}
 		fclose(pf);
 		close(fd);
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(I);
 		return 1;
 	}
 
-	if ((new_data = malloc(newsize)) == NULL) {
+	if ((new_data = malloc(new_size)) == NULL) {
 		close(fd);
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(I);
 		return -1;
 	}
 
-	if (pread(fd, new_data, newsize, 0) != newsize) {
+	if (pread(fd, new_data, new_size, 0) != new_size) {
 		close(fd);
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(new_data);
 		free(I);
 		return -1;
 	}
 	if (close(fd) == -1) {
-		munmap(old_data, oldsize);
+		munmap(old_data, old_size);
 		free(new_data);
 		free(I);
 		return -1;
 	}
 
 	/* we can write 3 8 byte tupples extra, so allocate some headroom */
-	if ((cb = malloc(newsize + 25)) == NULL) {
-		munmap(old_data, oldsize);
+	if ((cb = malloc(new_size + 25)) == NULL) {
+		munmap(old_data, old_size);
 		free(new_data);
 		free(I);
 		return -1;
 	}
-	if ((db = malloc(newsize + 25)) == NULL) {
-		munmap(old_data, oldsize);
+	if ((db = malloc(new_size + 25)) == NULL) {
+		munmap(old_data, old_size);
 		free(new_data);
 		free(cb);
 		free(I);
 		return -1;
 	}
-	if ((eb = malloc(newsize + 25)) == NULL) {
-		munmap(old_data, oldsize);
+	if ((eb = malloc(new_size + 25)) == NULL) {
+		munmap(old_data, old_size);
 		free(new_data);
 		free(cb);
 		free(db);
@@ -612,15 +612,15 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	lastscan = 0;
 	lastpos = 0;
 	lastoffset = 0;
-	while (scan < newsize) {
+	while (scan < new_size) {
 		oldscore = 0;
 
-		for (scsc = scan += len; scan < newsize; scan++) {
-			search(I, old_data, oldsize, new_data + scan, newsize - scan,
-			       0, oldsize, &pos, &len);
+		for (scsc = scan += len; scan < new_size; scan++) {
+			search(I, old_data, old_size, new_data + scan, new_size - scan,
+			       0, old_size, &pos, &len);
 
 			for (; scsc < scan + len; scsc++) {
-				if ((scsc + lastoffset < oldsize) &&
+				if ((scsc + lastoffset < old_size) &&
 				    (old_data[scsc + lastoffset] == new_data[scsc])) {
 					oldscore++;
 				}
@@ -631,18 +631,18 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 				break;
 			}
 
-			if ((scan + lastoffset < oldsize) &&
+			if ((scan + lastoffset < old_size) &&
 			    (old_data[scan + lastoffset] == new_data[scan])) {
 				oldscore--;
 			}
 		}
 
-		if ((len != oldscore) || (scan == newsize)) {
+		if ((len != oldscore) || (scan == new_size)) {
 			s = 0;
 			Sf = 0;
 			lenf = 0;
 			for (i = 0;
-			     (lastscan + i < scan) && (lastpos + i < oldsize);) {
+			     (lastscan + i < scan) && (lastpos + i < old_size);) {
 				if (old_data[lastpos + i] == new_data[lastscan + i]) {
 					s++;
 				}
@@ -654,7 +654,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 			}
 
 			lenb = 0;
-			if (scan < newsize) {
+			if (scan < new_size) {
 				s = 0;
 				Sb = 0;
 				for (i = 1;
@@ -707,8 +707,8 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 
 			/* checking for control block overflow...
 			 * See regression test #15 for an example */
-			if ((int64_t)(cblen + 24) > (newsize + 25)) {
-				munmap(old_data, oldsize);
+			if ((int64_t)(cblen + 24) > (new_size + 25)) {
+				munmap(old_data, old_size);
 				free(new_data);
 				free(cb);
 				free(db);
@@ -766,8 +766,8 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		small_header.control_length = cblen;
 		small_header.diff_length = dblen;
 		small_header.extra_length = eblen;
-		small_header.old_file_length = oldsize;
-		small_header.new_file_length = newsize;
+		small_header.old_file_length = old_size;
+		small_header.new_file_length = new_size;
 		small_header.file_mode = new_stat.st_mode;
 		small_header.file_owner = new_stat.st_uid;
 		small_header.file_group = new_stat.st_gid;
@@ -777,7 +777,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		eblock_set_enc(&small_header.encoding, e_enc);
 		encodings = small_header.encoding;
 
-		if ((first_block + cblen + dblen + eblen > 0.90 * newsize) && (enc != BSDIFF_ENC_NONE)) { /* tune */
+		if ((first_block + cblen + dblen + eblen > 0.90 * new_size) && (enc != BSDIFF_ENC_NONE)) { /* tune */
 			memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 			ret = 1;
 			if (fwrite(&small_header, 8, 1, pf) != 1) {
@@ -805,8 +805,8 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		large_header.control_length = cblen;
 		large_header.diff_length = dblen;
 		large_header.extra_length = eblen;
-		large_header.old_file_length = oldsize;
-		large_header.new_file_length = newsize;
+		large_header.old_file_length = old_size;
+		large_header.new_file_length = new_size;
 		large_header.file_mode = new_stat.st_mode;
 		large_header.file_owner = new_stat.st_uid;
 		large_header.file_group = new_stat.st_gid;
@@ -816,7 +816,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		eblock_set_enc(&large_header.encoding, e_enc);
 		encodings = large_header.encoding;
 
-		if ((first_block + cblen + dblen + eblen > 0.90 * newsize) && (enc != BSDIFF_ENC_NONE)) { /* tune */
+		if ((first_block + cblen + dblen + eblen > 0.90 * new_size) && (enc != BSDIFF_ENC_NONE)) { /* tune */
 			memcpy(&large_header.magic, BSDIFF_HDR_FULLDL, 8);
 			ret = 1;
 			if (fwrite(&large_header, 8, 1, pf) != 1) {
@@ -847,7 +847,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	}
 
 	bsdiff_files++;
-	bsdiff_newbytes += newsize;
+	bsdiff_newbytes += new_size;
 	bsdiff_outputbytes += first_block + cblen + dblen + eblen;
 
 	if (cblock_get_enc(encodings) == BSDIFF_ENC_NONE) {
@@ -901,7 +901,7 @@ fulldl_close_free:
 	}
 fulldl_free:
 	/* Free the memory we used */
-	munmap(old_data, oldsize);
+	munmap(old_data, old_size);
 	free(new_data);
 	free(cb);
 	free(db);

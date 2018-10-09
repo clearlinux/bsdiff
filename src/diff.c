@@ -92,20 +92,20 @@ static int64_t matchlen(u_char *old, int64_t old_size, u_char *new,
  * Finds the longest matching array of bytes between the OLD and NEW file. The
  * old file is suffix-sorted; the suffix-sorted array is stored at I, and
  * indices to search between are indicated by ST (start) and EN (end). The
- * function does not return a value, but once a match is determined, POS is
+ * function does not return a value, but once a match is determined, OLD_POS is
  * updated to the position of the match within OLD, and MAX_LEN is set to the
  * match length.
  */
 static void search(int64_t *I, u_char *old, int64_t old_size,
 		   u_char *new, int64_t new_size, int64_t st, int64_t en,
-		   int64_t *pos, int64_t *max_len)
+		   int64_t *old_pos, int64_t *max_len)
 {
 	int64_t x, y;
 
 	/* Initialize max_len for the binary search */
 	if (st == 0 && en == old_size) {
 		*max_len = matchlen(old, old_size, new, new_size);
-		*pos = I[st];
+		*old_pos = I[st];
 	}
 
 	/* The binary search terminates here when "en" and "st" are adjacent
@@ -114,12 +114,12 @@ static void search(int64_t *I, u_char *old, int64_t old_size,
 		x = matchlen(old + I[st], old_size - I[st], new, new_size);
 		if (x > *max_len) {
 			*max_len = x;
-			*pos = I[st];
+			*old_pos = I[st];
 		}
 		y = matchlen(old + I[en], old_size - I[en], new, new_size);
 		if (y > *max_len) {
 			*max_len = y;
-			*pos = I[en];
+			*old_pos = I[en];
 		}
 
 		return;
@@ -134,14 +134,14 @@ static void search(int64_t *I, u_char *old, int64_t old_size,
 	int64_t tmp = matchlen(oldoffset, length, new, length);
 	if (tmp > *max_len) {
 		*max_len = tmp;
-		*pos = I[x];
+		*old_pos = I[x];
 	}
 
 	/* Determine how to continue the binary search */
 	if (memcmp(oldoffset, new, length) < 0) {
-		return search(I, old, old_size, new, new_size, x, en, pos, max_len);
+		return search(I, old, old_size, new, new_size, x, en, old_pos, max_len);
 	} else {
-		return search(I, old, old_size, new, new_size, st, x, pos, max_len);
+		return search(I, old, old_size, new, new_size, st, x, old_pos, max_len);
 	}
 }
 
@@ -388,14 +388,6 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	u_char *old_data, *new_data;
 	int64_t old_size, new_size;
 	int64_t *I, *V;
-	int64_t scan;
-	int64_t pos = 0;
-	int64_t len;
-	int64_t lastscan, lastpos, lastoffset;
-	int64_t oldscore, scsc;
-	int64_t s, Sf, lenf, Sb, lenb;
-	int64_t overlap, Ss, lens;
-	int64_t i;
 	uint64_t cblen, dblen, eblen;
 	u_char *cb, *db, *eb;
 	struct stat new_stat;
@@ -607,103 +599,139 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	eblen = 0;
 
 	/* Compute the differences */
-	scan = 0;
-	len = 0;
-	lastscan = 0;
-	lastpos = 0;
-	lastoffset = 0;
-	while (scan < new_size) {
-		oldscore = 0;
+	int64_t new_pos = 0;
+	int64_t old_pos = 0;
+	int64_t match_len = 0;
+	int64_t last_new_pos = 0;
+	int64_t last_old_pos = 0;
+	int64_t last_offset = 0;
+	while (new_pos < new_size) {
+		// Find an exact match between old and new files, and require
+		// that more than 8 of the matching bytes "mismatch" from the
+		// previous exact match. A score (old_score) is used to track
+		// how many bytes match starting from new_pos in new, and from
+		// old_pos in the previous iteration.
+		int64_t old_score = 0;
+		int64_t new_peek;
+		for (new_peek = new_pos += match_len; new_pos < new_size; new_pos++) {
+			search(I, old_data, old_size, new_data + new_pos, new_size - new_pos,
+			       0, old_size, &old_pos, &match_len);
 
-		for (scsc = scan += len; scan < new_size; scan++) {
-			search(I, old_data, old_size, new_data + scan, new_size - scan,
-			       0, old_size, &pos, &len);
-
-			for (; scsc < scan + len; scsc++) {
-				if ((scsc + lastoffset < old_size) &&
-				    (old_data[scsc + lastoffset] == new_data[scsc])) {
-					oldscore++;
+			for (; new_peek < new_pos + match_len; new_peek++) {
+				if ((new_peek + last_offset < old_size) &&
+				    (old_data[new_peek + last_offset] == new_data[new_peek])) {
+					old_score++;
 				}
 			}
 
-			if (((len == oldscore) && (len != 0)) ||
-			    (len > oldscore + 8)) {
+			if (((match_len == old_score) && (match_len != 0)) ||
+			    (match_len > old_score + 8)) {
 				break;
 			}
 
-			if ((scan + lastoffset < old_size) &&
-			    (old_data[scan + lastoffset] == new_data[scan])) {
-				oldscore--;
+			// Before beginning the next loop iteration, decrement
+			// old_score if needed, since new_pos will be
+			// incremented.
+			if ((new_pos + last_offset < old_size) &&
+			    (old_data[new_pos + last_offset] == new_data[new_pos])) {
+				old_score--;
 			}
 		}
 
-		if ((len != oldscore) || (scan == new_size)) {
-			s = 0;
-			Sf = 0;
-			lenf = 0;
-			for (i = 0;
-			     (lastscan + i < scan) && (lastpos + i < old_size);) {
-				if (old_data[lastpos + i] == new_data[lastscan + i]) {
-					s++;
+		if ((match_len != old_score) || (new_pos == new_size)) {
+			int64_t bytes = 0, max = 0;
+			// Compute the length of a fuzzy match starting from
+			// the beginning of the fuzzy match recorded at the end
+			// of the previous iteration (i.e. len_fuzzybackward
+			// less than the previous match positions). At least
+			// half of the bytes match between old and new. This
+			// fuzzy match will be used to construct a diff string
+			// in the diff block.
+			int64_t len_fuzzyforward = 0;
+			for (int64_t i = 0;
+			     (last_new_pos + i < new_pos) && (last_old_pos + i < old_size);) {
+				if (old_data[last_old_pos + i] == new_data[last_new_pos + i]) {
+					bytes++;
 				}
 				i++;
-				if (s * 2 - i > Sf * 2 - lenf) {
-					Sf = s;
-					lenf = i;
+				if (bytes * 2 - i > max * 2 - len_fuzzyforward) {
+					max = bytes;
+					len_fuzzyforward = i;
 				}
 			}
 
-			lenb = 0;
-			if (scan < new_size) {
-				s = 0;
-				Sb = 0;
-				for (i = 1;
-				     (scan >= lastscan + i) && (pos >= i);
+			// Compute the length of a fuzzy match ending at the
+			// current positions in old and new files (old_pos and
+			// new_pos). At least half of the bytes match between
+			// old and new. This fuzzy match will be used for the
+			// next iteration.
+			int64_t len_fuzzybackward = 0;
+			if (new_pos < new_size) {
+				bytes = 0;
+				max = 0;
+				for (int64_t i = 1;
+				     (new_pos >= last_new_pos + i) && (old_pos >= i);
 				     i++) {
-					if (old_data[pos - i] == new_data[scan - i]) {
-						s++;
+					if (old_data[old_pos - i] == new_data[new_pos - i]) {
+						bytes++;
 					}
-					if (s * 2 - i > Sb * 2 - lenb) {
-						Sb = s;
-						lenb = i;
+					if (bytes * 2 - i > max * 2 - len_fuzzybackward) {
+						max = bytes;
+						len_fuzzybackward = i;
 					}
 				}
 			}
 
-			if (lastscan + lenf > scan - lenb) {
-				overlap = (lastscan + lenf) - (scan - lenb);
-				s = 0;
-				Ss = 0;
-				lens = 0;
-				for (i = 0; i < overlap; i++) {
-					if (new_data[lastscan + lenf - overlap + i] ==
-					    old_data[lastpos + lenf - overlap + i]) {
-						s++;
+			// If there is an overlap between len_fuzzyforward and
+			// len_fuzzybackward in the new file, that overlap must
+			// be eliminated.
+			if (last_new_pos + len_fuzzyforward > new_pos - len_fuzzybackward) {
+				bytes = 0;
+				max = 0;
+				int64_t overlap = (last_new_pos + len_fuzzyforward) - (new_pos - len_fuzzybackward);
+				int64_t len_fuzzyshift = 0;
+				// Scan the overlap area for differences
+				// between old and new. If any mismatching
+				// bytes are found, extend len_fuzzyforward to
+				// cover those bytes, because we want them
+				// included in the diff block.
+				for (int64_t i = 0; i < overlap; i++) {
+					if (new_data[last_new_pos + len_fuzzyforward - overlap + i] ==
+					    old_data[last_old_pos + len_fuzzyforward - overlap + i]) {
+						bytes++;
 					}
-					if (new_data[scan - lenb + i] ==
-					    old_data[pos - lenb + i]) {
-						s--;
+					if (new_data[new_pos - len_fuzzybackward + i] ==
+					    old_data[old_pos - len_fuzzybackward + i]) {
+						bytes--;
 					}
-					if (s > Ss) {
-						Ss = s;
-						lens = i + 1;
+					if (bytes > max) {
+						max = bytes;
+						len_fuzzyshift = i + 1;
 					}
 				}
 
-				lenf += lens - overlap;
-				lenb -= lens;
+				len_fuzzyforward += len_fuzzyshift - overlap;
+				len_fuzzybackward -= len_fuzzyshift;
 			}
 
-			for (i = 0; i < lenf; i++) {
+			// Set the diff string in the diff block. For each byte
+			// in the fuzzy forward region, the byte from old is
+			// subtracted from new. When applying the delta (with
+			// bspatch) this operation is reversed, by performing
+			// additions.
+			for (int64_t i = 0; i < len_fuzzyforward; i++) {
 				db[dblen + i] =
-				    new_data[lastscan + i] - old_data[lastpos + i];
+				    new_data[last_new_pos + i] - old_data[last_old_pos + i];
 			}
-			for (i = 0; i < (scan - lenb) - (lastscan + lenf); i++) {
-				eb[eblen + i] = new_data[lastscan + lenf + i];
+			// Set the extra string in the extra block. The
+			// contents are the bytes in new file between the fuzzy
+			// forward and fuzzy backward regions.
+			for (int64_t i = 0; i < (new_pos - len_fuzzybackward) - (last_new_pos + len_fuzzyforward); i++) {
+				eb[eblen + i] = new_data[last_new_pos + len_fuzzyforward + i];
 			}
 
-			dblen += lenf;
-			eblen += (scan - lenb) - (lastscan + lenf);
+			dblen += len_fuzzyforward;
+			eblen += (new_pos - len_fuzzybackward) - (last_new_pos + len_fuzzyforward);
 
 			/* checking for control block overflow...
 			 * See regression test #15 for an example */
@@ -717,18 +745,28 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 				return -1;
 			}
 
-			offtout(lenf, cb + cblen);
+			// Set three values in the control block:
+			//  1. ADD instruction (value: length of the diff
+			//     string). It uses the offset of the third control
+			//     block value from the previous iteration.
+			//  2. INSERT instruction (value: length of the extra
+			//     string)
+			//  3. offset in old file for the next ADD instruction
+			offtout(len_fuzzyforward, cb + cblen);
 			cblen += 8;
 
-			offtout((scan - lenb) - (lastscan + lenf), cb + cblen);
+			offtout((new_pos - len_fuzzybackward) - (last_new_pos + len_fuzzyforward), cb + cblen);
 			cblen += 8;
 
-			offtout((pos - lenb) - (lastpos + lenf), cb + cblen);
+			offtout((old_pos - len_fuzzybackward) - (last_old_pos + len_fuzzyforward), cb + cblen);
 			cblen += 8;
 
-			lastscan = scan - lenb;
-			lastpos = pos - lenb;
-			lastoffset = pos - scan;
+			// Save old/new file positions to the beginning of the
+			// fuzzy backward region, since the next fuzzy forward
+			// region will be calculated from that point.
+			last_new_pos = new_pos - len_fuzzybackward;
+			last_old_pos = old_pos - len_fuzzybackward;
+			last_offset = old_pos - new_pos;
 		}
 	}
 	free(I);

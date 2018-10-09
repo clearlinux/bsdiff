@@ -539,7 +539,7 @@ static int apply_delta_v2(int subver, FILE *f,
 	cfile cf, df, ef;
 	unsigned char *old_data = NULL, *new_data;
 	unsigned char buf[8];
-	off_t oldpos, newpos;
+	off_t old_pos, new_pos;
 	int64_t ctrl[3];
 	int i, ret, fd;
 	off_t data_offset;
@@ -617,9 +617,9 @@ static int apply_delta_v2(int subver, FILE *f,
 	}
 	memset(new_data, 0, new_size + 1);
 
-	oldpos = 0;
-	newpos = 0;
-	while (newpos < new_size) {
+	old_pos = 0;
+	new_pos = 0;
+	while (new_pos < new_size) {
 		/* Read control data:
 		 *   ctrl[0] == offset into diff block
 		 *   ctrl[1] == offset into extra block
@@ -628,7 +628,7 @@ static int apply_delta_v2(int subver, FILE *f,
 		 * The three control block words manage reads of the diff,
 		 * extra and old_data so that those three sources can be
 		 * combined into new_data.  ctrl[2] in particular may cause
-		 * oldpos to jump forward AND backward in order to allow
+		 * old_pos to jump forward AND backward in order to allow
 		 * copies of the original file content rather than using
 		 * diff or extra content.
 		 */
@@ -641,47 +641,47 @@ static int apply_delta_v2(int subver, FILE *f,
 		}
 
 		/* Sanity-check */
-		if (newpos + ctrl[0] > new_size || ctrl[0] < 0 || newpos + ctrl[0] < 0) {
+		if (new_pos + ctrl[0] > new_size || ctrl[0] < 0 || new_pos + ctrl[0] < 0) {
 			ret = -1;
 			goto readerror;
 		}
 
 		/* Read diff string */
-		ret = cfread(&df, new_data + newpos, ctrl[0], BSDIFF_BLOCK_DIFF, &d_zeros);
+		ret = cfread(&df, new_data + new_pos, ctrl[0], BSDIFF_BLOCK_DIFF, &d_zeros);
 		if (ret < 0) {
 			goto readerror;
 		}
 
 		/* Add old data to diff string */
 		for (i = 0; i < ctrl[0]; i++) {
-			if ((oldpos + i >= 0) && (oldpos + i < old_size)) {
-				new_data[newpos + i] += old_data[oldpos + i];
+			if ((old_pos + i >= 0) && (old_pos + i < old_size)) {
+				new_data[new_pos + i] += old_data[old_pos + i];
 			}
 		}
 
 		/* Adjust pointers */
-		newpos += ctrl[0];
-		oldpos += ctrl[0];
+		new_pos += ctrl[0];
+		old_pos += ctrl[0];
 
 		/* Sanity-check */
-		if (newpos + ctrl[1] > new_size || ctrl[1] < 0 || newpos + ctrl[1] < 0) {
+		if (new_pos + ctrl[1] > new_size || ctrl[1] < 0 || new_pos + ctrl[1] < 0) {
 			ret = -1;
 			goto readerror;
 		}
-		if (oldpos + ctrl[2] > old_size || oldpos + ctrl[2] < 0) {
+		if (old_pos + ctrl[2] > old_size || old_pos + ctrl[2] < 0) {
 			ret = -1;
 			goto readerror;
 		}
 
 		/* Read extra string */
-		ret = cfread(&ef, new_data + newpos, ctrl[1], BSDIFF_BLOCK_EXTRA, &e_zeros);
+		ret = cfread(&ef, new_data + new_pos, ctrl[1], BSDIFF_BLOCK_EXTRA, &e_zeros);
 		if (ret < 0) {
 			goto readerror;
 		}
 
 		/* Adjust pointers */
-		newpos += ctrl[1];
-		oldpos += ctrl[2];
+		new_pos += ctrl[1];
+		old_pos += ctrl[2];
 	}
 
 	/* Clean up the readers */

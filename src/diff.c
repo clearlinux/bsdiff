@@ -611,6 +611,9 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		// previous exact match. A score (old_score) is used to track
 		// how many bytes match starting from new_pos in new, and from
 		// old_pos in the previous iteration.
+		// NOTE: the magic value 8 is a heuristic; further testing is
+		// needed to prove whether this is the best number, or if the
+		// number should vary according to other factors, etc.
 		int64_t old_score = 0;
 		int64_t new_peek;
 		for (new_peek = new_pos += match_len; new_pos < new_size; new_pos++) {
@@ -647,6 +650,11 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 			// half of the bytes match between old and new. This
 			// fuzzy match will be used to construct a diff string
 			// in the diff block.
+			// NOTE: "at least half matching bytes" is a heuristic
+			// for both fuzzy regions being constructed below;
+			// further testing is needed to prove whether this is
+			// the best percentage, or if the percentage should
+			// vary according to other factors, etc.
 			int64_t len_fuzzyforward = 0;
 			for (int64_t i = 0;
 			     (last_new_pos + i < new_pos) && (last_old_pos + i < old_size);) {

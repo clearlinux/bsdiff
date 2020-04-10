@@ -254,7 +254,7 @@ static size_t xzread(xzfile *xzf, u_char *buf, size_t len, lzma_ret *err)
 
 typedef struct {
 	FILE *f; /* method = NONE, BZIP2, ZEROS */
-	int fd;  /* method = BZIP2 */
+	int fd;	 /* method = BZIP2 */
 	union {
 #ifdef BSDIFF_WITH_BZIP2
 		BZFILE *bz2; /* method = BZIP2 */

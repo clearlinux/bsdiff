@@ -20,7 +20,8 @@ install-sh
 libbsdiff.la
 libtool
 ltmain.sh
-m4/
+m4/*
+!m4/.gitignore
 missing
 src/.dirstamp
 src/*.gcda

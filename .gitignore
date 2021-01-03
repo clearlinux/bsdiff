@@ -30,7 +30,8 @@ src/.dirstamp
 src/*.gcda
 src/*.gcno
 stamp-h1
-bsdiff-*.tar.xz
+/bsdiff-*.tar.xz
+/bsdiff-*/
 test/*.diff
 test/*.out
 test/*.log

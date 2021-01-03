@@ -98,7 +98,10 @@ libbsdiff_la_LDFLAGS = \
 	-Wl,--version-script=$(top_srcdir)/src/bsdiff.sym
 
 distclean-local:
-	rm -rf aclocal.m4 ar-lib autom4te.cache config.guess config.h.in config.h.in~ config.sub configure depcomp install-sh ltmain.sh m4 Makefile.in missing compile
+	-rm -f config.guess~
+	-rm -f config.h.in~
+	-rm -f config.sub~
+	-rm -f configure~
 
 install-exec-hook:
 	perl $(top_srcdir)/findstatic.pl $(top_builddir)/src/*.o | grep -v Checking || :

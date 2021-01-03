@@ -97,6 +97,10 @@ libbsdiff_la_LDFLAGS = \
 	-version-info $(LIBBSDIFF_CURRENT):$(LIBBSDIFF_REVISION):$(LIBBSDIFF_AGE) \
 	-Wl,--version-script=$(top_srcdir)/src/bsdiff.sym
 
+mostlyclean-local:
+	-rm -f *.i
+	-rm -f *.s
+
 distclean-local:
 	-rm -f config.guess~
 	-rm -f config.h.in~

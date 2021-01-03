@@ -101,7 +101,7 @@ distclean-local:
 	rm -rf aclocal.m4 ar-lib autom4te.cache config.guess config.h.in config.h.in~ config.sub configure depcomp install-sh ltmain.sh m4 Makefile.in missing compile
 
 install-exec-hook:
-	perl findstatic.pl */*.o | grep -v Checking ||:
+	perl $(top_srcdir)/findstatic.pl $(top_builddir)/src/*.o | grep -v Checking || :
 
 TEST_EXTENSIONS = .sh
 

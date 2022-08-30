@@ -445,7 +445,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
-		efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
+		efd = open(delta_filename_unique, O_CREAT | O_EXCL | O_WRONLY, 00644);
 		if (efd < 0) {
 			close(fd);
 			return -1;
@@ -462,6 +462,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		}
 		fclose(pf);
 		close(fd);
+		rename(delta_filename_unique, delta_filename);		
 		return 1;
 	}
 
@@ -527,7 +528,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		memset(&small_header, 0, sizeof(struct header_v21));
 		memcpy(&small_header.magic, BSDIFF_HDR_FULLDL, 8);
 
-		efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
+		efd = open(delta_filename_unique, O_CREAT | O_EXCL | O_WRONLY, 00644);
 		if (efd < 0) {
 			close(fd);
 			munmap(old_data, old_size);
@@ -553,6 +554,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		close(fd);
 		munmap(old_data, old_size);
 		free(I);
+		rename(delta_filename_unique, delta_filename);
 		return 1;
 	}
 

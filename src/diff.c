@@ -462,7 +462,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 		}
 		fclose(pf);
 		close(fd);
-		rename(delta_filename_unique, delta_filename);		
+		rename(delta_filename_unique, delta_filename);
 		return 1;
 	}
 

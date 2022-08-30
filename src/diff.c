@@ -396,9 +396,12 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	off_t first_block;
 	int c_enc, d_enc, e_enc;
 	enc_flags_t encodings;
+	char delta_filename_unique[2 * PATH_MAX];
 
 	struct header_v20 large_header;
 	struct header_v21 small_header;
+
+	sprintf(delta_filename_unique, "%s.%i", delta_filename, getpid());
 	FILE *pf;
 
 	ret = lstat(old_filename, &old_stat);
@@ -410,6 +413,8 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 	if (ret < 0) {
 		return -1;
 	}
+
+	ret = 0;
 
 	if (S_ISDIR(new_stat.st_mode) || S_ISDIR(old_stat.st_mode)) {
 		/* no delta on symlinks ! */
@@ -790,7 +795,7 @@ int make_bsdiff_delta(char *old_filename, char *new_filename, char *delta_filena
 
 	/* Create the patch file */
 
-	efd = open(delta_filename, O_CREAT | O_EXCL | O_WRONLY, 00644);
+	efd = open(delta_filename_unique, O_CREAT | O_EXCL | O_WRONLY, 00644);
 	if (efd < 0) {
 		ret = -1;
 		goto fulldl_free;
@@ -945,6 +950,7 @@ fulldl_close_free:
 	if (fclose(pf)) {
 		ret = -1;
 	}
+	rename(delta_filename_unique, delta_filename);
 fulldl_free:
 	/* Free the memory we used */
 	munmap(old_data, old_size);
